@@ -1,7 +1,9 @@
 import NoteCard from "@/components/NoteCard";
 import SafeAreaView from "@/components/SafeAreaView";
 import { CATEGORY } from "@/utils/constants";
-import { useState } from "react";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -11,13 +13,31 @@ import {
   View,
 } from "react-native";
 import "../../global.css";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useNoteStore } from "../../store/useNotes";
+
 const HomeScreen = () => {
+  const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const { notes } = useNoteStore();
+
+  const filterNotes = useMemo(() => {
+    let result = notes;
+    if (selectedCategory) {
+      result = result.filter((note) => note.category === selectedCategory);
+    }
+    if (searchText.trim()) {
+      result = result.filter((note) =>
+        note.title.toLowerCase().includes(searchText.toLowerCase()),
+      );
+    }
+    return result;
+  }, [notes,searchText,selectedCategory]);
 
   const handleCategoryClick = (category: string) => {
-    setSelectedCategory(category); // Set category
+    setSelectedCategory((prevCategory) =>
+      prevCategory === category ? "" : category,
+    );
   };
 
   return (
@@ -71,48 +91,29 @@ const HomeScreen = () => {
             );
           })}
         </ScrollView>
-        <FlatList
-          data={[
-            {
-              id: "1",
-              title: "first note",
-              category: "work",
-              isCompleted: false,
-              description: "this is the first note",
-              date: "2023-06-01",
-            },
-            {
-              id: "2",
-              title: "second note",
-              category: "personal",
-              isCompleted: true,
-              description: "this is the second note",
-              date: "2023-06-02",
-            },
-            {
-              id: "3",
-              title: "third note",
-              category: "work",
-              isCompleted: false,
-              description: "this is the third note",
-              date: "2023-06-03",
-            },
-            {
-              id: "4",
-              title: "fourth note",
-              category: "personal",
-              isCompleted: true,
-              description: "this is the fourth note",
-              date: "2023-06-04",
-            },
-          ]}
 
-          keyExtractor={(note) => note.id}
-          renderItem={({ item }) => <NoteCard note={item} />}
-          contentContainerStyle={{ paddingBottom: 100, marginTop: 16 }}
-          showsVerticalScrollIndicator={false}
-        />
-        <Pressable className="absolute bottom-4 right-5 bg-governorBay p-5 rounded-2xl shadow-2xl">
+        {filterNotes.length === 0 ? (
+          <View className="w-full items-center mt-16">
+            <Text className="text-gray-400 font-medium text-2xl">No Notes yets</Text>
+            <Text className="text-gray-500 text-lg mt-2">
+              Tap the + button below to capture your taught
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filterNotes}
+
+            keyExtractor={(note) => note.id}
+            renderItem={({ item }) => <NoteCard note={item} />}
+            contentContainerStyle={{ paddingBottom: 100, marginTop: 16 }}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+
+        <Pressable
+          onPress={() => router.push("/add")}
+          className="absolute bottom-4 right-5 bg-governorBay p-5 rounded-2xl shadow-2xl"
+        >
           <MaterialIcons name="add" size={30} color="white" />
         </Pressable>
       </View>
